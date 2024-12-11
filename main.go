@@ -71,19 +71,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	var s string
-	for i, lines := range m.checkerboard {
-		for j := range lines {
-			if m.cursor.y == i && m.cursor.x == j {
-				if m.checkerboard[m.cursor.y][m.cursor.x] == '◦' {
-					m.checkerboard[m.cursor.y][m.cursor.x] = '○'
-				} else {
-					m.checkerboard[m.cursor.y][m.cursor.x] = '◦'
-				}
-			}
+	for _, lines := range m.checkerboard {
+		switch m.checkerboard[m.cursor.y][m.cursor.x] {
+		case '◦':
+			m.checkerboard[m.cursor.y][m.cursor.x] = '○'
 		}
 
 		s += fmt.Sprintf("%c\n", lines)
 	}
+
+	s += fmt.Sprintf("x: %d y: %d", m.cursor.x, m.cursor.y)
 	return s
 }
 
