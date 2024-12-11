@@ -71,13 +71,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	var s string
-	for _, lines := range m.checkerboard {
-		switch m.checkerboard[m.cursor.y][m.cursor.x] {
-		case '◦':
-			m.checkerboard[m.cursor.y][m.cursor.x] = '○'
+	for i, line := range m.checkerboard {
+		for j, cell := range line {
+			if i == m.cursor.y && j == m.cursor.x {
+				switch cell {
+				case '◦':
+					s += " ○ "
+				case 'w':
+					s += " W "
+				case 'b':
+					s += " B "
+				}
+			} else {
+				s += " "
+				s += string(cell)
+				s += " "
+			}
 		}
-
-		s += fmt.Sprintf("%c\n", lines)
+		s += "\n"
 	}
 
 	s += fmt.Sprintf("x: %d y: %d", m.cursor.x, m.cursor.y)
@@ -85,8 +96,8 @@ func (m model) View() string {
 }
 
 func main() {
-	// fmt.Println("Hi! This is Checkers")
-	// fmt.Println("hjkl to move cursor, space to select\nq to exit")
+	fmt.Println("Hi! This is Checkers")
+	fmt.Println("↑←↓→ to move cursor,\nspace to select\nq to exit")
 
 	p := tea.NewProgram(initialModel())
 	if _, err := p.Run(); err != nil {
