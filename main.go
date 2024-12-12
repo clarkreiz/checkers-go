@@ -14,9 +14,15 @@ type Point struct {
 	y int
 }
 
+type Selected struct {
+	checker  rune
+	position Point
+}
+
 type model struct {
 	checkerboard Board
 	cursor       Point
+	selected     Selected
 }
 
 func (m model) Init() tea.Cmd {
@@ -35,7 +41,8 @@ func initialModel() model {
 			{'◦', 'w', '◦', 'w', '◦', 'w', '◦', 'w'},
 			{'w', '◦', 'w', '◦', 'w', '◦', 'w', '◦'},
 		},
-		cursor: Point{x: 0, y: 0},
+		cursor:   Point{x: 0, y: 0},
+		selected: Selected{checker: ' ', position: Point{x: -1, y: -1}},
 	}
 	return game
 }
@@ -47,7 +54,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Exit Game
 		case "ctrl+c", "q":
 			return m, tea.Quit
-
+		// Movement
 		case "h", "left":
 			if m.cursor.x > 0 {
 				m.cursor.x--
@@ -63,6 +70,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "l", "right":
 			if m.cursor.x < 7 {
 				m.cursor.x++
+			}
+		case " ":
+			if m.selected.checker == ' ' {
+				checker := m.checkerboard[m.cursor.y][m.cursor.x]
+				if checker == 'b' || checker == 'w' { // save current checker in Selected
+					m.selected = Selected{
+						checker: checker, // checker 'w' or 'b'
+						position: Point{
+							x: m.cursor.x, // point of selected
+							y: m.cursor.y, // checker
+						},
+					}
+				}
+			} else {
+				// if checker already selected and user press space
+				// remove checker from old position and unselect
+				m.checkerboard[m.cursor.y][m.cursor.x] = m.selected.checker
+				m.checkerboard[m.selected.position.y][m.selected.position.x] = '◦'
+				m.selected.checker = ' '
 			}
 		}
 	}
@@ -91,7 +117,7 @@ func (m model) View() string {
 		s += "\n"
 	}
 
-	s += fmt.Sprintf("x: %d y: %d", m.cursor.x, m.cursor.y)
+	s += fmt.Sprintf("x: %d y: %d, selected: %s", m.cursor.x, m.cursor.y, string(m.selected.checker))
 	return s
 }
 
