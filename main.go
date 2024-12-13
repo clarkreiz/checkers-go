@@ -19,16 +19,16 @@ type Point struct {
 	y int
 }
 
-type Selected struct {
-	checker  rune // default is ' ', may be 'b' or 'w'
-	position Point
-}
+// type Selected struct {
+// 	checker  rune // default is ' ', may be 'b' or 'w'
+// 	position Point
+// }
 
 type model struct {
-	checkerboard Board    // game desk for checkers
-	cursor       Point    // cursor use for moving through checkerboard and select checker
-	selected     Selected // struct for selected checker with position and rune (default is ' ')
-	info         string   // special field for info text message
+	checkerboard Board  // game desk for checkers
+	cursor       Point  // cursor use for moving through checkerboard and select checker
+	selected     *Point // struct for selected checker with position and rune (default is ' ')
+	info         string // special field for info text message
 }
 
 func (m model) Init() tea.Cmd {
@@ -47,11 +47,9 @@ func initialModel() model {
 			{'◦', 'w', '◦', 'w', '◦', 'w', '◦', 'w'},
 			{'w', '◦', 'w', '◦', 'w', '◦', 'w', '◦'},
 		},
-		cursor: Point{x: 0, y: 0},
-		selected: Selected{
-			checker:  ' ',
-			position: Point{x: -1, y: -1}}, // this means: no checker selected yet
-		info: "You awesome!",
+		cursor:   Point{x: 0, y: 0},
+		selected: nil,
+		info:     "You awesome!",
 	}
 	return game
 }
@@ -82,47 +80,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		// Selecting
 		case " ": // " " it's a `space`
-			if m.selected.checker == ' ' {
+			if m.selected == nil {
 				checker := m.checkerboard[m.cursor.y][m.cursor.x]
 				if checker == 'b' || checker == 'w' {
 					// save current checker in Selected
-					m.selected = Selected{
-						checker: checker, // 'w' or 'b'
-						position: Point{
-							x: m.cursor.x, // point of selected
-							y: m.cursor.y, // checker
-						},
+					m.selected = &Point{
+						x: m.cursor.x, // point of selected
+						y: m.cursor.y, // checker
 					}
 					m.info = "Put a checker where you want!"
 				}
 			} else {
-				if m.cursor.x == m.selected.position.x && m.cursor.y == m.selected.position.y {
+				if m.cursor.x == m.selected.x && m.cursor.y == m.selected.y {
 					m.info = "Forbidden put a checker in the same cell."
 					return m, nil
 				}
 				// Logic for putting checker
-				if m.validMove() {
-					m.checkerboard[m.cursor.y][m.cursor.x] = m.selected.checker
-					m.checkerboard[m.selected.position.y][m.selected.position.x] = '◦'
-					m.selected.checker = ' '
-					m.info = "Okay, good!"
+				if m.cursor.x-m.selected.x > 1 || m.cursor.y-m.selected.y > 1 {
+					m.info = "You cannot put checker here :("
+					return m, nil
 				}
+				m.checkerboard[m.cursor.y][m.cursor.x] = m.checkerboard[m.selected.y][m.selected.x]
+				m.checkerboard[m.selected.y][m.selected.x] = '◦'
+				m.selected = nil
+				m.info = "Okay, good!"
 			}
 		}
 	}
 	return m, nil
-}
-
-func (m *model) validMove() bool {
-	current_position := m.selected.position
-	new_position := m.cursor
-
-	if new_position.x-current_position.x > 1 || new_position.y-current_position.y > 1 {
-		m.info = "No that place"
-		return false
-	} else {
-		return true
-	}
 }
 
 func (m model) View() string {
@@ -147,7 +132,7 @@ func (m model) View() string {
 		s += "\n"
 	}
 
-	s += fmt.Sprintf("x: %d y: %d, selected: %s", m.cursor.x, m.cursor.y, string(m.selected.checker))
+	s += fmt.Sprintf("x: %d y: %d", m.cursor.x, m.cursor.y)
 	s += fmt.Sprint("\n", m.info)
 	return s
 }
