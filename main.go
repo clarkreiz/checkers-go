@@ -1,3 +1,8 @@
+// Terminology:
+// checkers - name of the game
+// checkerboard - game desk for playing checkers
+// checker - name of one `figure`, may be white or black (w,b in this game)
+
 package main
 
 import (
@@ -15,14 +20,15 @@ type Point struct {
 }
 
 type Selected struct {
-	checker  rune
+	checker  rune // default is ' ', may be 'b' or 'w'
 	position Point
 }
 
 type model struct {
-	checkerboard Board
-	cursor       Point
-	selected     Selected
+	checkerboard Board    // game desk for checkers
+	cursor       Point    // cursor use for moving through checkerboard and select checker
+	selected     Selected // struct for selected checker with position and rune (default is ' ')
+	info         string   // special field for info text message
 }
 
 func (m model) Init() tea.Cmd {
@@ -41,8 +47,11 @@ func initialModel() model {
 			{'◦', 'w', '◦', 'w', '◦', 'w', '◦', 'w'},
 			{'w', '◦', 'w', '◦', 'w', '◦', 'w', '◦'},
 		},
-		cursor:   Point{x: 0, y: 0},
-		selected: Selected{checker: ' ', position: Point{x: -1, y: -1}},
+		cursor: Point{x: 0, y: 0},
+		selected: Selected{
+			checker:  ' ',
+			position: Point{x: -1, y: -1}}, // this means: no checker selected yet
+		info: "You awesome!",
 	}
 	return game
 }
@@ -71,24 +80,30 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor.x < 7 {
 				m.cursor.x++
 			}
-		case " ":
+		case " ": // " " it's a `space`
 			if m.selected.checker == ' ' {
 				checker := m.checkerboard[m.cursor.y][m.cursor.x]
-				if checker == 'b' || checker == 'w' { // save current checker in Selected
+				if checker == 'b' || checker == 'w' {
+					// save current checker in Selected
 					m.selected = Selected{
-						checker: checker, // checker 'w' or 'b'
+						checker: checker, // 'w' or 'b'
 						position: Point{
 							x: m.cursor.x, // point of selected
 							y: m.cursor.y, // checker
 						},
 					}
+					m.info = "Put checker where you want"
 				}
 			} else {
-				// if checker already selected and user press space
-				// remove checker from old position and unselect
+				if m.cursor.x == m.selected.position.x && m.cursor.y == m.selected.position.y {
+					m.info = "Forbidden put a checker in the same cell."
+					return m, nil
+				}
+				// Logic for putting checker
 				m.checkerboard[m.cursor.y][m.cursor.x] = m.selected.checker
 				m.checkerboard[m.selected.position.y][m.selected.position.x] = '◦'
 				m.selected.checker = ' '
+				m.info = "Okay, good!"
 			}
 		}
 	}
@@ -118,6 +133,7 @@ func (m model) View() string {
 	}
 
 	s += fmt.Sprintf("x: %d y: %d, selected: %s", m.cursor.x, m.cursor.y, string(m.selected.checker))
+	s += fmt.Sprint("\n", m.info)
 	return s
 }
 
