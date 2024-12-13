@@ -80,6 +80,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.cursor.x < 7 {
 				m.cursor.x++
 			}
+		// Selecting
 		case " ": // " " it's a `space`
 			if m.selected.checker == ' ' {
 				checker := m.checkerboard[m.cursor.y][m.cursor.x]
@@ -92,7 +93,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							y: m.cursor.y, // checker
 						},
 					}
-					m.info = "Put checker where you want"
+					m.info = "Put a checker where you want!"
 				}
 			} else {
 				if m.cursor.x == m.selected.position.x && m.cursor.y == m.selected.position.y {
@@ -100,14 +101,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				// Logic for putting checker
-				m.checkerboard[m.cursor.y][m.cursor.x] = m.selected.checker
-				m.checkerboard[m.selected.position.y][m.selected.position.x] = '◦'
-				m.selected.checker = ' '
-				m.info = "Okay, good!"
+				if m.validMove() {
+					m.checkerboard[m.cursor.y][m.cursor.x] = m.selected.checker
+					m.checkerboard[m.selected.position.y][m.selected.position.x] = '◦'
+					m.selected.checker = ' '
+					m.info = "Okay, good!"
+				}
 			}
 		}
 	}
 	return m, nil
+}
+
+func (m *model) validMove() bool {
+	current_position := m.selected.position
+	new_position := m.cursor
+
+	if new_position.x-current_position.x > 1 || new_position.y-current_position.y > 1 {
+		m.info = "No that place"
+		return false
+	} else {
+		return true
+	}
 }
 
 func (m model) View() string {
