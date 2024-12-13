@@ -84,19 +84,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				checker := m.checkerboard[m.cursor.y][m.cursor.x]
 				if checker == 'b' || checker == 'w' {
 					// save current checker in Selected
-					m.selected = &Point{
-						x: m.cursor.x, // point of selected
-						y: m.cursor.y, // checker
-					}
+					m.selected = &Point{x: m.cursor.x, y: m.cursor.y}
 					m.info = "Put a checker where you want!"
 				}
 			} else {
-				if m.cursor.x == m.selected.x && m.cursor.y == m.selected.y {
-					m.info = "Forbidden put a checker in the same cell."
-					return m, nil
-				}
-				// Logic for putting checker
-				if m.cursor.x-m.selected.x > 1 || m.cursor.y-m.selected.y > 1 {
+				dy := abs(m.cursor.y - m.selected.y)
+				dx := abs(m.cursor.x - m.selected.x)
+				if dx > 1 || dy > 1 || dy == 0 || dx == 0 {
 					m.info = "You cannot put checker here :("
 					return m, nil
 				}
@@ -108,6 +102,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+func abs(n int) int {
+	if n < 0 {
+		return -n
+	} else {
+		return n
+	}
 }
 
 func (m model) View() string {
