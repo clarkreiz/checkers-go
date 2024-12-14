@@ -13,22 +13,25 @@ import (
 )
 
 type Board = [][]rune
+type pieceType = rune
+
+const (
+	white pieceType = 'w'
+	black pieceType = 'b'
+	empty pieceType = '◦'
+)
 
 type Point struct {
 	x int
 	y int
 }
 
-// type Selected struct {
-// 	checker  rune // default is ' ', may be 'b' or 'w'
-// 	position Point
-// }
-
 type model struct {
 	checkerboard Board  // game desk for checkers
 	cursor       Point  // cursor use for moving through checkerboard and select checker
-	selected     *Point // struct for selected checker with position and rune (default is ' ')
+	selected     *Point // struct for selected checker with position and pieceType (default is ' ')
 	info         string // special field for info text message
+	currentTurn  pieceType
 }
 
 func (m model) Init() tea.Cmd {
@@ -82,7 +85,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case " ": // " " it's a `space`
 			if m.selected == nil {
 				checker := m.checkerboard[m.cursor.y][m.cursor.x]
-				if checker == 'b' || checker == 'w' {
+				if checker == black || checker == white {
 					// save current checker in Selected
 					m.selected = &Point{x: m.cursor.x, y: m.cursor.y}
 					m.info = "Put a checker where you want!"
@@ -95,7 +98,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 				m.checkerboard[m.cursor.y][m.cursor.x] = m.checkerboard[m.selected.y][m.selected.x]
-				m.checkerboard[m.selected.y][m.selected.x] = '◦'
+				m.checkerboard[m.selected.y][m.selected.x] = empty
 				m.selected = nil
 				m.info = "Okay, good!"
 			}
@@ -118,11 +121,11 @@ func (m model) View() string {
 		for j, cell := range line {
 			if i == m.cursor.y && j == m.cursor.x {
 				switch cell {
-				case '◦':
+				case empty:
 					s += " ○ "
-				case 'w':
+				case white:
 					s += " W "
-				case 'b':
+				case black:
 					s += " B "
 				}
 			} else {
