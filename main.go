@@ -27,11 +27,12 @@ type Point struct {
 }
 
 type model struct {
-	checkerboard Board  // game desk for checkers
-	cursor       Point  // cursor use for moving through checkerboard and select checker
-	selected     *Point // struct for selected checker with position and pieceType (default is ' ')
-	info         string // special field for info text message
-	currentTurn  pieceType
+	checkerboard Board     // game desk for checkers
+	cursor       Point     // cursor use for moving through checkerboard and select checker
+	selected     *Point    // for selected checker (default is nil)
+	infoMessage  string    // special field for info text message
+	turnMessage  string    // who turn?
+	currentTurn  pieceType // who turn?
 }
 
 func (m model) Init() tea.Cmd {
@@ -50,9 +51,11 @@ func initialModel() model {
 			{'◦', 'w', '◦', 'w', '◦', 'w', '◦', 'w'},
 			{'w', '◦', 'w', '◦', 'w', '◦', 'w', '◦'},
 		},
-		cursor:   Point{x: 0, y: 0},
-		selected: nil,
-		info:     "You awesome!",
+		cursor:      Point{x: 0, y: 0},
+		selected:    nil,
+		infoMessage: "Go-go!",
+		currentTurn: white,
+		turnMessage: "White turn.",
 	}
 	return game
 }
@@ -88,19 +91,26 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if checker == black || checker == white {
 					// save current checker in Selected
 					m.selected = &Point{x: m.cursor.x, y: m.cursor.y}
-					m.info = "Put a checker where you want!"
 				}
 			} else {
+				// TODO: add capture a checker
 				dy := abs(m.cursor.y - m.selected.y)
 				dx := abs(m.cursor.x - m.selected.x)
 				if dx > 1 || dy > 1 || dy == 0 || dx == 0 {
-					m.info = "You cannot put checker here :("
+					m.infoMessage = "You cannot put checker here :("
 					return m, nil
 				}
 				m.checkerboard[m.cursor.y][m.cursor.x] = m.checkerboard[m.selected.y][m.selected.x]
 				m.checkerboard[m.selected.y][m.selected.x] = empty
 				m.selected = nil
-				m.info = "Okay, good!"
+				m.infoMessage = "Okay, good!"
+				if m.currentTurn == white {
+					m.currentTurn = black
+					m.turnMessage = "Black turn!"
+				} else {
+					m.currentTurn = white
+					m.turnMessage = "White turn!"
+				}
 			}
 		}
 	}
@@ -138,7 +148,8 @@ func (m model) View() string {
 	}
 
 	s += fmt.Sprintf("x: %d y: %d", m.cursor.x, m.cursor.y)
-	s += fmt.Sprint("\n", m.info)
+	s += fmt.Sprint("\n", m.infoMessage)
+	s += fmt.Sprint(" ", m.turnMessage)
 	return s
 }
 
