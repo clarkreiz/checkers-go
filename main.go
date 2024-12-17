@@ -41,7 +41,8 @@ func (m model) Init() tea.Cmd {
 
 func initialModel() model {
 	game := model{
-		checkerboard: Board{
+		checkerboard: Board{ // i can use white/black const,
+			// but more i like this code
 			{'◦', 'b', '◦', 'b', '◦', 'b', '◦', 'b'},
 			{'b', '◦', 'b', '◦', 'b', '◦', 'b', '◦'},
 			{'◦', 'b', '◦', 'b', '◦', 'b', '◦', 'b'},
@@ -51,7 +52,7 @@ func initialModel() model {
 			{'◦', 'w', '◦', 'w', '◦', 'w', '◦', 'w'},
 			{'w', '◦', 'w', '◦', 'w', '◦', 'w', '◦'},
 		},
-		cursor:      Point{x: 0, y: 0},
+		cursor:      Point{x: 0, y: 7},
 		selected:    nil,
 		infoMessage: "Go-go!",
 		currentTurn: white,
@@ -64,53 +65,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		// Exit Game
+		// Exit the Game
 		case "ctrl+c", "q":
 			return m, tea.Quit
-		// Movement
-		case "h", "left":
-			if m.cursor.x > 0 {
-				m.cursor.x--
-			}
-		case "j", "down":
-			if m.cursor.y < 7 {
-				m.cursor.y++
-			}
-		case "k", "up":
-			if m.cursor.y > 0 {
-				m.cursor.y--
-			}
-		case "l", "right":
-			if m.cursor.x < 7 {
-				m.cursor.x++
-			}
-		// Selecting
-		case " ": // " " it's a `space`
-			if m.selected == nil {
+		// Cursor movement
+		case "h", "j", "k", "l":
+			return moveCursor(msg.String(), m), nil
+		// Selection and all core game logic handled here ↓ :)
+		case " ":
+			if m.selected == nil { // first time we simply cath the checker
 				checker := m.checkerboard[m.cursor.y][m.cursor.x]
 				if checker == black || checker == white {
-					// save current checker in Selected
 					m.selected = &Point{x: m.cursor.x, y: m.cursor.y}
 				}
-			} else {
-				// TODO: add capture a checker
-				dy := abs(m.cursor.y - m.selected.y)
-				dx := abs(m.cursor.x - m.selected.x)
-				if dx > 1 || dy > 1 || dy == 0 || dx == 0 {
-					m.infoMessage = "You cannot put checker here :("
-					return m, nil
-				}
-				m.checkerboard[m.cursor.y][m.cursor.x] = m.checkerboard[m.selected.y][m.selected.x]
-				m.checkerboard[m.selected.y][m.selected.x] = empty
-				m.selected = nil
-				m.infoMessage = "Okay, good!"
-				if m.currentTurn == white {
-					m.currentTurn = black
-					m.turnMessage = "Black turn!"
-				} else {
-					m.currentTurn = white
-					m.turnMessage = "White turn!"
-				}
+			} else { // secondly we make a move
+				return makeMove(*m.selected, m.cursor, m), nil
 			}
 		}
 	}
@@ -122,6 +91,74 @@ func abs(n int) int {
 		return -n
 	} else {
 		return n
+	}
+}
+
+func moveCursor(msg string, m model) model {
+	switch msg {
+	case "h", "left":
+		if m.cursor.x > 0 {
+			m.cursor.x--
+		}
+	case "j", "down":
+		if m.cursor.y < 7 {
+			m.cursor.y++
+		}
+	case "k", "up":
+		if m.cursor.y > 0 {
+			m.cursor.y--
+		}
+	case "l", "right":
+		if m.cursor.x < 7 {
+			m.cursor.x++
+		}
+	}
+	return m
+}
+
+func makeMove(from, to Point, m model) model {
+	var validMat [8][8]int
+
+	for i, line := range validMat {
+		for j := range line {
+			if i%2 == 0 {
+				validMat[i][j] = (j % 2) & pieceToValid(m.checkerboard[i][j])
+			} else {
+				validMat[i][j] = (1 ^ j%2) & pieceToValid(m.checkerboard[i][j])
+			}
+		}
+	}
+	dy := abs(to.y - from.y)
+	dx := abs(to.x - from.x)
+	if dy <= 1 && dx <= 1 && validMat[to.y][to.x] != 0 {
+		m.checkerboard[m.cursor.y][m.cursor.x] = m.checkerboard[m.selected.y][m.selected.x]
+		m.checkerboard[m.selected.y][m.selected.x] = empty
+		m.selected = nil
+		m.infoMessage = "Okay, good!"
+		if m.currentTurn == white {
+			m.currentTurn = black
+			m.turnMessage = "Black turn!"
+		} else {
+			m.currentTurn = white
+			m.turnMessage = "White turn!"
+		}
+		return m
+	} else {
+		// TODO: add the ability to capture a checker
+		// if dy > 1 || dx > 1 && validMat[to.y][to.x] != 0 {
+		// 	makeCapture
+		// } else
+		m.infoMessage = "Something went wrong"
+		return m
+	}
+}
+
+func pieceToValid(piece pieceType) int {
+	// A checker may be placed only on an empty field
+	if piece == empty {
+		return 1
+	} else {
+		return 0
 	}
 }
 
@@ -155,7 +192,7 @@ func (m model) View() string {
 
 func main() {
 	fmt.Println("Hi! This is Checkers")
-	fmt.Println("↑←↓→ to move cursor,\nspace to select\nq to exit")
+	fmt.Println("hjkl to move cursor,\nspace to select\nq to exit")
 
 	p := tea.NewProgram(initialModel())
 	if _, err := p.Run(); err != nil {
