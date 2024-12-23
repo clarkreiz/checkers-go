@@ -93,7 +93,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.selected = &Point{x: m.cursor.x, y: m.cursor.y}
 				}
 			} else {
-				// TODO: add capture a checker
 				dy := abs(m.cursor.y - m.selected.y)
 				dx := abs(m.cursor.x - m.selected.x)
 				if dy == 0 || dx == 0 {
