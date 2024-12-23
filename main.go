@@ -96,25 +96,52 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// TODO: add capture a checker
 				dy := abs(m.cursor.y - m.selected.y)
 				dx := abs(m.cursor.x - m.selected.x)
-				if dx > 1 || dy > 1 || dy == 0 || dx == 0 {
-					m.infoMessage = "You cannot put checker here :("
-					return m, nil
+				if dy == 0 || dx == 0 {
+					return m.stepBack("Try to make a move!"), nil
 				}
-				m.checkerboard[m.cursor.y][m.cursor.x] = m.checkerboard[m.selected.y][m.selected.x]
-				m.checkerboard[m.selected.y][m.selected.x] = empty
-				m.selected = nil
-				m.infoMessage = "Okay, good!"
-				if m.currentTurn == white {
-					m.currentTurn = black
-					m.turnMessage = "Black turn!"
-				} else {
-					m.currentTurn = white
-					m.turnMessage = "White turn!"
+				// Basic move without capture
+				if dx == 1 && dy == 1 {
+					if m.checkerboard[m.cursor.y][m.cursor.x] != empty {
+						return m.stepBack("You can't place checker here :("), nil
+					} else {
+						return m.makeMove(), nil
+					}
+				}
+				// Capture
+				if dy == 2 && dx == 2 {
+					enemyPoint := Point{y: (m.cursor.y + m.selected.y) / 2,
+						x: (m.cursor.x + m.selected.x) / 2,
+					}
+					if enemy := m.checkerboard[enemyPoint.y][enemyPoint.x]; enemy == black || enemy == white {
+						m.checkerboard[enemyPoint.y][enemyPoint.x] = empty
+						return m.makeMove(), nil
+					}
 				}
 			}
 		}
 	}
 	return m, nil
+}
+
+func (m model) stepBack(msg string) model {
+	m.infoMessage = msg
+	return m
+}
+
+func (m model) makeMove() model {
+
+	m.checkerboard[m.cursor.y][m.cursor.x] = m.checkerboard[m.selected.y][m.selected.x]
+	m.checkerboard[m.selected.y][m.selected.x] = empty
+	m.selected = nil
+	m.infoMessage = "Okay, good!"
+	if m.currentTurn == white {
+		m.currentTurn = black
+		m.turnMessage = "Black turn!"
+	} else {
+		m.currentTurn = white
+		m.turnMessage = "White turn!"
+	}
+	return m
 }
 
 func abs(n int) int {
